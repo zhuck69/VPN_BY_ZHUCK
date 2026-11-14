@@ -12,14 +12,14 @@ HY2_HOP_END=50000
 
 usage() {
   cat <<'EOF'
-Usage: sudo ./install.sh [options]
+Использование: sudo ./install.sh [параметры]
 
-Options:
-  --server-address IP_OR_HOST       Public address placed in client links
-  --reality-target HOST:PORT        REALITY camouflage target
-  --reality-sni HOST                SNI used by REALITY clients
-  --profile-name NAME               Name shown in HAPP
-  -h, --help                        Show this help
+Параметры:
+  --server-address IP_ИЛИ_ИМЯ       Публичный адрес в ссылках клиентов
+  --reality-target ИМЯ:ПОРТ         Камуфляжная цель REALITY
+  --reality-sni ИМЯ                 SNI для клиентов REALITY
+  --profile-name ИМЯ                Название профиля в HAPP
+  -h, --help                        Показать эту справку
 EOF
 }
 
@@ -46,7 +46,7 @@ while (($#)); do
       exit 0
       ;;
     *)
-      echo "Unknown option: $1" >&2
+      echo "Неизвестный параметр: $1" >&2
       usage >&2
       exit 2
       ;;
@@ -54,12 +54,12 @@ while (($#)); do
 done
 
 if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
-  echo "Run as root: sudo ./install.sh" >&2
+  echo "Запустите от root: sudo ./install.sh" >&2
   exit 1
 fi
 
 if [[ ! -r /etc/os-release ]]; then
-  echo "Unsupported system: /etc/os-release is missing" >&2
+  echo "Неподдерживаемая система: отсутствует /etc/os-release" >&2
   exit 1
 fi
 
@@ -67,21 +67,21 @@ fi
 case "${ID:-}" in
   ubuntu|debian) ;;
   *)
-    echo "Supported systems: Ubuntu and Debian (found: ${ID:-unknown})" >&2
+    echo "Поддерживаются Ubuntu и Debian (обнаружено: ${ID:-неизвестно})" >&2
     exit 1
     ;;
 esac
 
 if [[ ! "$REALITY_TARGET" =~ ^[A-Za-z0-9.-]+:[0-9]{1,5}$ ]]; then
-  echo "Invalid --reality-target; expected HOST:PORT" >&2
+  echo "Некорректный --reality-target; ожидается ИМЯ:ПОРТ" >&2
   exit 2
 fi
 if [[ ! "$REALITY_SERVER_NAME" =~ ^[A-Za-z0-9.-]+$ ]]; then
-  echo "Invalid --reality-sni" >&2
+  echo "Некорректный --reality-sni" >&2
   exit 2
 fi
 if [[ ${#PROFILE_NAME} -gt 25 || "$PROFILE_NAME" == *$'\n'* ]]; then
-  echo "Profile name must be a single line of at most 25 characters" >&2
+  echo "Название профиля должно быть одной строкой длиной не более 25 символов" >&2
   exit 2
 fi
 
@@ -96,7 +96,7 @@ if [[ -z "$SERVER_ADDR" ]]; then
   SERVER_ADDR="$(curl -6fsS --max-time 10 https://api64.ipify.org || true)"
 fi
 if [[ -z "$SERVER_ADDR" || "$SERVER_ADDR" == *$'\n'* || "$SERVER_ADDR" == *' '* ]]; then
-  echo "Cannot detect public address; pass --server-address IP_OR_HOST" >&2
+  echo "Не удалось определить публичный адрес; укажите --server-address IP_ИЛИ_ИМЯ" >&2
   exit 1
 fi
 
@@ -123,7 +123,7 @@ XRAY_KEYS="$($XRAY_BIN x25519)"
 REALITY_PRIVATE_KEY="$(awk -F': *' '/^(PrivateKey|Private key)/ {print $2; exit}' <<<"$XRAY_KEYS")"
 REALITY_PUBLIC_KEY="$(awk -F': *' '/^(Password|Public key)/ {print $2; exit}' <<<"$XRAY_KEYS")"
 if [[ -z "$REALITY_PRIVATE_KEY" || -z "$REALITY_PUBLIC_KEY" ]]; then
-  echo "Could not parse Xray x25519 output" >&2
+  echo "Не удалось разобрать вывод Xray x25519" >&2
   exit 1
 fi
 
@@ -144,7 +144,7 @@ done
 
 systemctl stop xray.service hysteria-server.service happ-vpn-udp-hop.service 2>/dev/null || true
 if ss -H -ltnup | grep -Eq '(^|[[:space:]])[^[:space:]]*:443([[:space:]]|$)'; then
-  echo "Port 443 is occupied after stopping Xray/Hysteria:" >&2
+  echo "После остановки Xray/Hysteria порт 443 всё ещё занят:" >&2
   ss -H -ltnup | grep -E '(^|[[:space:]])[^[:space:]]*:443([[:space:]]|$)' >&2 || true
   exit 1
 fi
@@ -190,7 +190,7 @@ cat > /usr/local/etc/xray/config.json <<EOF
 EOF
 XRAY_SERVICE_GROUP="$(id -gn nobody 2>/dev/null || true)"
 if [[ -z "$XRAY_SERVICE_GROUP" ]]; then
-  echo "Cannot determine the Xray service group" >&2
+  echo "Не удалось определить группу службы Xray" >&2
   exit 1
 fi
 chown root:"$XRAY_SERVICE_GROUP" /usr/local/etc/xray/config.json
@@ -247,7 +247,7 @@ EOF
 
 cat > /etc/systemd/system/happ-vpn-udp-hop.service <<'EOF'
 [Unit]
-Description=ZHUCK VPN Hysteria2 UDP port hopping
+Description=ZHUCK VPN: переброс UDP-портов Hysteria2
 Before=hysteria-server.service
 After=network-online.target
 Wants=network-online.target
@@ -283,7 +283,7 @@ sysctl --system >/dev/null 2>&1 || true
 sleep 2
 for service in xray.service hysteria-server.service happ-vpn-udp-hop.service; do
   if ! systemctl is-active --quiet "$service"; then
-    echo "$service failed to start" >&2
+    echo "Служба $service не запустилась" >&2
     journalctl -u "$service" -n 50 --no-pager >&2 || true
     exit 1
   fi
@@ -324,7 +324,7 @@ $OUTPUT_DIR/subscription.txt
 Required cloud firewall rules:
 TCP 443 inbound
 UDP 443 inbound
-UDP $HY2_HOP_START-$HY2_HOP_END inbound (Hysteria2 port hopping)
+UDP $HY2_HOP_START-$HY2_HOP_END входящие (переброс UDP-портов Hysteria2)
 EOF
 
 qrencode -o "$OUTPUT_DIR/vless-reality.png" "$VLESS_LINK"
@@ -332,10 +332,10 @@ qrencode -o "$OUTPUT_DIR/hysteria2.png" "$HY2_LINK"
 chmod 600 "$OUTPUT_DIR/subscription.txt" "$OUTPUT_DIR/INSTALL_REPORT.txt" "$OUTPUT_DIR"/*.png
 
 echo
-echo "Installation complete. Import either or both links into HAPP:"
+echo "Установка завершена. Импортируйте одну или обе ссылки в HAPP:"
 echo
 echo "$VLESS_LINK"
 echo
 echo "$HY2_LINK"
 echo
-echo "Saved with QR codes in $OUTPUT_DIR"
+echo "Ссылки и QR-коды сохранены в $OUTPUT_DIR"

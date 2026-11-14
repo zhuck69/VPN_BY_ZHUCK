@@ -22,7 +22,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $installer = Join-Path $PSScriptRoot 'install.sh'
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
-    throw "Installer not found: $installer"
+    throw "Установщик не найден: $installer"
 }
 if ($IdentityFile) {
     $IdentityFile = (Resolve-Path -LiteralPath $IdentityFile).Path
@@ -38,7 +38,7 @@ $remoteInstaller = "/tmp/happ-vpn-install-$([guid]::NewGuid().ToString('N')).sh"
 
 & scp @sshOptions -- $installer "${target}:$remoteInstaller"
 if ($LASTEXITCODE -ne 0) {
-    throw "SCP failed with exit code $LASTEXITCODE"
+    throw "Ошибка SCP, код завершения: $LASTEXITCODE"
 }
 
 $serverArg = if ($PublicAddress) { $PublicAddress } else { $Server }
@@ -46,6 +46,6 @@ $remoteCommand = "chmod 700 '$remoteInstaller' && sudo '$remoteInstaller' --serv
 
 & ssh @sshOptions -- $target $remoteCommand
 if ($LASTEXITCODE -ne 0) {
-    throw "Remote installation failed with exit code $LASTEXITCODE"
+    throw "Удалённая установка завершилась с ошибкой, код: $LASTEXITCODE"
 }
 

@@ -1,0 +1,40 @@
+name: Проверка пакета
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    name: Синтаксис и секреты
+    runs-on: ubuntu-latest
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@v4
+
+      - name: Проверить Bash
+        shell: bash
+        run: bash -n install.sh
+
+      - name: Проверить PowerShell
+        shell: pwsh
+        run: |
+          $errors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'Deploy-To-VPS.ps1'), [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Проверить отсутствие секретов
+        shell: bash
+        run: |
+          if grep -RInE --exclude-dir=.git --exclude='*.md' --exclude='*.yml' \
+            '-----BEGIN (RSA|OPENSSH|EC|PRIVATE) KEY-----|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}' .; then
+            echo 'Найдены похожие на секреты значения.' >&2
+            exit 1
+          fi
