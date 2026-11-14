@@ -1,0 +1,8 @@
+INSTALL_REPORT.txt
+subscription.txt
+*.png
+*.key
+*.pem
+*.crt
+*.env
+secrets/
