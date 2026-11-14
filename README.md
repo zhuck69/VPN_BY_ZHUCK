@@ -99,7 +99,7 @@ ssh -i ~/.ssh/id_ed25519 root@203.0.113.10 \
 Или выполните установщик уже на VPS:
 
 ```bash
-sudo ./install.sh --server-address 203.0.113.10 --profile-name 'My VPN'
+sudo ./install.sh --server-address 203.0.113.10 --profile-name 'Мой VPN'
 ```
 
 Параметр `--server-address` обязателен, если VPS не может определить внешний адрес через `api.ipify.org`/`api64.ipify.org`.
